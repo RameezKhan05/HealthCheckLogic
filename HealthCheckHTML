@@ -1,0 +1,360 @@
+#!/bin/bash
+#. $HOME/.profile
+
+#################################################################
+#################################################################
+#This script sends mail for the EOD data for all clients
+#Author : Rameez M. Khan
+#################################################################
+#################################################################
+
+SCRDIR=$HOME/scripts/monday_report
+SCRIPT_NAME=prod_eod_status_mail.sh
+LOGDIR=$HOME/scripts/monday_report/logs
+LOG_FILE=$LOGDIR/prod_eod_status_mail.log
+
+export ORACLE_SID=PRICEPRD
+export ORA_USER_ID=SCOCI
+export ORA_PASSWORD=SC56oci12db34con
+export ORACLE_HOME=/app/oracle/product/19.3/client
+
+export SERVER_NAME=`whoami`
+export ALLCOUNT=43
+
+#MAIL_LIST="rameez.m.khan@fisglobal.com"
+
+#####################################################
+# Functions
+#####################################################
+
+exit_success() {
+echo `date` ":INFO :${SCRIPT}: +++++++++++++++++" >> ${LOG_FILE}
+echo `date` ":INFO :${SCRIPT}: Script SUCCESS." >> ${LOG_FILE}
+echo `date` ":INFO :${SCRIPT}: +++++++++++++++++" >> ${LOG_FILE}
+}
+
+exit_fail() {
+echo `date` ":INFO :${SCRIPT}: +++++++++++++++++" > ${LOG_FILE}
+echo `date` ":ERROR :${SCRIPT}: Script FAILED." >> ${LOG_FILE}
+echo `date` ":INFO :${SCRIPT}: +++++++++++++++++" >> ${LOG_FILE}
+mailx -s "$SCRIPT_NAME failed for $CLIENT_NAME" $TO_LIST <`tail -40 $LOG_FILE`
+exit 1
+}
+
+#################################################################
+# Main Function
+#################################################################
+
+echo `date` ":INFO :${SCRIPT}: +++++++++++++++++" > ${LOG_FILE}
+echo `date` ":INFO :${SCRIPT}: Script STARTED." >> ${LOG_FILE}
+echo `date` ":INFO :${SCRIPT}: +++++++++++++++++" >> ${LOG_FILE}
+
+#####################################################
+# Check & exit if ALL EOD mail was sent.
+#####################################################
+
+#####################################################
+# Check & exit if ALL EOD mail was sent.
+#####################################################
+
+                export TO_LIST="GSC.Pun.STNOncall@fisglobal.com"
+#		export TO_LIST="rameez.m.khan@fisglobal.com"
+                export CC_LIST="TS.BO.Pune@fisglobal.com, TS.MarginAdvisorL3@fisglobal.com, GSC.Pun.CM.RIM@fisglobal.com, SSP.Systems.Infrastructure@fisglobal.com, Mahendra.Gavhane@fisglobal.com"
+                export SUBJECT="<DCC SERVER>SCM PRODUCTION CLIENTS HEALTH CHECK"
+
+	echo "To: $TO_LIST"> $LOGDIR/status_report.html
+	echo "Cc: $CC_LIST">> $LOGDIR/status_report.html
+	echo "Subject: $SUBJECT">> $LOGDIR/status_report.html
+	echo "Content-Type: text/html; charset="us-ascii"" >> $LOGDIR/status_report.html
+	
+	echo "<html>
+			<body>
+				<table border = "1" style=\"font-family:Calibri;font-size:14.5px\">
+					<tr style=\"background-color: #7fae38; text-align:center\">
+						<th colspan = "16">SCM PROD Status Statistics </th>
+					</tr>
+					<tr style=\"background-color: #bada8c; text-align:center\">
+                                                <td><b>Client Name</b></td>
+                                                <td><b>Application User</b></td>
+                                                <td><b>WLS Status</b></td>
+                                                <td><b>BOT Status</b></td>
+                                                <td><b>MONITOR WLS Status</b></td>
+						<td><b>AUTOBOT Status</b></td>
+						<td><b>STARTACTIVITY Status</b></td>
+                                                <td><b>STARTRTACTIVITY Status</b></td>
+                                                <td><b>AUTORUNSCRIPT Status</b></td>
+						<td><b>APP CRON Status</b></td>
+						<td><b>APP ENTRYDATE</b></td>
+						<td><b>CALCULATOR Status</b></td>
+						<td><b>MONITOR_CALC Status</b></td>
+						<td><b>STARTRTCALC Status</b></td>
+						<td><b>CALC CRON Status</b></td>
+						<td><b>CALC ENTRYDATE</b></td>	
+					</tr>" >> $LOGDIR/status_report.html	
+
+	for scmclientfirm in `cat $SCRDIR/scmclientfirm.txt`
+	do
+
+                CLIENTS=`${ORACLE_HOME}/bin/sqlplus -s $ORA_USER_ID/$ORA_PASSWORD@$ORACLE_SID <<END
+                set pagesize 0 feedback off verify off heading off echo off timing off
+                SELECT CLIENT FROM MONDAY_AUDIT_NEW WHERE UNAME = '$scmclientfirm';
+                exit;
+END`
+                UNAME=`${ORACLE_HOME}/bin/sqlplus -s $ORA_USER_ID/$ORA_PASSWORD@$ORACLE_SID <<END
+                set pagesize 0 feedback off verify off heading off echo off timing off
+                SELECT UNAME FROM MONDAY_AUDIT_NEW WHERE UNAME = '$scmclientfirm';
+                exit;
+END`
+
+                WLS=`${ORACLE_HOME}/bin/sqlplus -s $ORA_USER_ID/$ORA_PASSWORD@$ORACLE_SID <<END
+                set pagesize 0 feedback off verify off heading off echo off timing off
+                SELECT WLS_BOUNCE FROM MONDAY_AUDIT_NEW WHERE UNAME = '$scmclientfirm';
+                exit;
+END`
+
+                        if [ "$WLS" == "BAD" ]
+                                then
+                                        colorcode1="c13f4c"
+                        elif [ "$WLS" == "NA" ]
+                                then
+                                        colorcode1="2931EE"
+                        elif [ "$WLS" == "GOOD" ]
+                                then
+                                        colorcode1="1BAC59"
+                        fi
+
+                BOTS=`${ORACLE_HOME}/bin/sqlplus -s $ORA_USER_ID/$ORA_PASSWORD@$ORACLE_SID <<END
+                set pagesize 0 feedback off verify off heading off echo off timing off
+                SELECT BOTS FROM MONDAY_AUDIT_NEW WHERE UNAME = '$scmclientfirm';
+                exit;
+END`
+
+                        if [ "$BOTS" == "BAD" ]
+                                then
+                                        colorcode2="c13f4c"
+                        elif [ "$BOTS" == "NA" ]
+                                then
+                                        colorcode2="2931EE"
+                        elif [ "$BOTS" == "GOOD" ]
+                                then
+                                        colorcode2="1BAC59"
+                        fi
+
+                MONITOR=`${ORACLE_HOME}/bin/sqlplus -s $ORA_USER_ID/$ORA_PASSWORD@$ORACLE_SID <<END
+                set pagesize 0 feedback off verify off heading off echo off timing off
+                SELECT MONITOR_WLS FROM MONDAY_AUDIT_NEW WHERE UNAME = '$scmclientfirm';
+                exit;
+END`
+
+                        if [ "$MONITOR" == "BAD" ]
+                                then
+                                        colorcode3="c13f4c"
+                        elif [ "$MONITOR" == "NA" ]
+                                then
+                                        colorcode3="2931EE"
+                        elif [ "$MONITOR" == "GOOD" ]
+                                then
+                                        colorcode3="1BAC59"
+                        fi
+
+                AUTOBOT=`${ORACLE_HOME}/bin/sqlplus -s $ORA_USER_ID/$ORA_PASSWORD@$ORACLE_SID <<END
+                set pagesize 0 feedback off verify off heading off echo off timing off
+                SELECT AUTOBOT FROM MONDAY_AUDIT_NEW WHERE UNAME = '$scmclientfirm';
+                exit;
+END`
+
+			if [ "$AUTOBOT" == "BAD" ]
+				then
+					colorcode4="c13f4c"
+			elif [ "$AUTOBOT" == "NA" ]
+				then
+					colorcode4="2931EE"
+			elif [ "$AUTOBOT" == "GOOD" ]
+				then
+					colorcode4="1BAC59"
+			fi
+
+                STARTACTIVITY=`${ORACLE_HOME}/bin/sqlplus -s $ORA_USER_ID/$ORA_PASSWORD@$ORACLE_SID <<END
+                set pagesize 0 feedback off verify off heading off echo off timing off
+                SELECT STARTACTIVITY FROM MONDAY_AUDIT_NEW WHERE UNAME = '$scmclientfirm';
+                exit;
+END`
+
+                        if [ "$STARTACTIVITY" == "BAD" ]
+                                then
+                                        colorcode5="c13f4c"
+                        elif [ "$STARTACTIVITY" == "NA" ]
+                                then
+                                        colorcode5="2931EE"
+                        elif [ "$STARTACTIVITY" == "GOOD" ]
+                                then
+                                        colorcode5="1BAC59"
+                        fi
+
+                STARTRTACTIVITY=`${ORACLE_HOME}/bin/sqlplus -s $ORA_USER_ID/$ORA_PASSWORD@$ORACLE_SID <<END
+                set pagesize 0 feedback off verify off heading off echo off timing off
+                SELECT STARTRTACTIVITY FROM MONDAY_AUDIT_NEW WHERE UNAME = '$scmclientfirm';
+                exit;
+END`
+
+                        if [ "$STARTRTACTIVITY" == "BAD" ]
+                                then
+                                        colorcode6="c13f4c"
+                        elif [ "$STARTRTACTIVITY" == "NA" ]
+                                then
+                                        colorcode6="2931EE"
+                        elif [ "$STARTRTACTIVITY" == "GOOD" ]
+                                then
+                                        colorcode6="1BAC59"
+                        fi
+
+                AUTORUN=`${ORACLE_HOME}/bin/sqlplus -s $ORA_USER_ID/$ORA_PASSWORD@$ORACLE_SID <<END
+                set pagesize 0 feedback off verify off heading off echo off timing off
+                SELECT AUTORUNSCRIPT FROM MONDAY_AUDIT_NEW WHERE UNAME = '$scmclientfirm';
+                exit;
+END`
+
+                        if [ "$AUTORUN" == "BAD" ]
+                                then
+                                        colorcode7="c13f4c"
+                        elif [ "$AUTORUN" == "NA" ]
+                                then
+                                        colorcode7="2931EE"
+                        elif [ "$AUTORUN" == "GOOD" ]
+                                then
+                                        colorcode7="1BAC59"
+                        fi
+
+                CRON=`${ORACLE_HOME}/bin/sqlplus -s $ORA_USER_ID/$ORA_PASSWORD@$ORACLE_SID <<END
+                set pagesize 0 feedback off verify off heading off echo off timing off
+                SELECT APP_CRON FROM MONDAY_AUDIT_NEW WHERE UNAME = '$scmclientfirm';
+                exit;
+END`
+
+                        if [ "$CRON" == "BAD" ]
+                                then
+                                        colorcode8="c13f4c"
+                        elif [ "$CRON" == "NA" ]
+                                then
+                                        colorcode8="2931EE"
+                        elif [ "$CRON" == "GOOD" ]
+                                then
+                                        colorcode8="1BAC59"
+                        fi
+
+                ENTRYDATE=`${ORACLE_HOME}/bin/sqlplus -s $ORA_USER_ID/$ORA_PASSWORD@$ORACLE_SID <<END
+                set pagesize 0 feedback off verify off heading off echo off timing off
+                SELECT APP_ENTRYDATE FROM MONDAY_AUDIT_NEW WHERE UNAME = '$scmclientfirm';
+                exit;
+END`
+
+                CALCULATOR=`${ORACLE_HOME}/bin/sqlplus -s $ORA_USER_ID/$ORA_PASSWORD@$ORACLE_SID <<END
+                set pagesize 0 feedback off verify off heading off echo off timing off
+                SELECT CALCULATOR FROM MONDAY_AUDIT_NEW WHERE UNAME = '$scmclientfirm';
+                exit;
+END`
+
+                        if [ "$CALCULATOR" == "BAD" ]
+                                then
+                                        colorcode9="c13f4c"
+                        elif [ "$CALCULATOR" == "NA" ]
+                                then
+                                        colorcode9="2931EE"
+                        elif [ "$CALCULATOR" == "GOOD" ]
+                                then
+                                        colorcode9="1BAC59"
+                        fi
+
+                MONCAL=`${ORACLE_HOME}/bin/sqlplus -s $ORA_USER_ID/$ORA_PASSWORD@$ORACLE_SID <<END
+                set pagesize 0 feedback off verify off heading off echo off timing off
+                SELECT MONITOR_CALC FROM MONDAY_AUDIT_NEW WHERE UNAME = '$scmclientfirm';
+                exit;
+END`
+
+                        if [ "$MONCAL" == "BAD" ]
+                                then
+                                        colorcode10="c13f4c"
+                        elif [ "$MONCAL" == "NA" ]
+                                then
+                                        colorcode10="2931EE"
+                        elif [ "$MONCAL" == "GOOD" ]
+                                then
+                                        colorcode10="1BAC59"
+                        fi
+
+                STARTCAL=`${ORACLE_HOME}/bin/sqlplus -s $ORA_USER_ID/$ORA_PASSWORD@$ORACLE_SID <<END
+                set pagesize 0 feedback off verify off heading off echo off timing off
+                SELECT STARTRTCALC FROM MONDAY_AUDIT_NEW WHERE UNAME = '$scmclientfirm';
+                exit;
+END`
+
+                        if [ "$STARTCAL" == "BAD" ]
+                                then
+                                        colorcode11="c13f4c"
+                        elif [ "$STARTCAL" == "NA" ]
+                                then
+                                        colorcode11="2931EE"
+                        elif [ "$STARTCAL" == "GOOD" ]
+                                then
+                                        colorcode11="1BAC59"
+                        fi
+
+                C_CRON=`${ORACLE_HOME}/bin/sqlplus -s $ORA_USER_ID/$ORA_PASSWORD@$ORACLE_SID <<END
+                set pagesize 0 feedback off verify off heading off echo off timing off
+                SELECT CALC_CRON FROM MONDAY_AUDIT_NEW WHERE UNAME = '$scmclientfirm';
+                exit;
+END`
+
+                        if [ "$C_CRON" == "BAD" ]
+                                then
+                                        colorcode12="c13f4c"
+                        elif [ "$C_CRON" == "NA" ]
+                                then
+                                        colorcode12="2931EE"
+                        elif [ "$C_CRON" == "GOOD" ]
+                                then
+                                        colorcode12="1BAC59"
+                        fi
+
+                C_ENTRYDATE=`${ORACLE_HOME}/bin/sqlplus -s $ORA_USER_ID/$ORA_PASSWORD@$ORACLE_SID <<END
+                set pagesize 0 feedback off verify off heading off echo off timing off
+                SELECT CALC_ENTRYDATE FROM MONDAY_AUDIT_NEW WHERE UNAME = '$scmclientfirm';
+                exit;
+END`
+
+                SAVEIFS=$IFS
+                        IFS=$'\n'
+                        mkt_outarray=($CLIENTS)
+                        IFS=$SAVEIFS
+
+                for ((i=0; i<${#mkt_outarray[@]};i++))
+                do
+                        echo "<tr>
+                                <td align=\"center\">$CLIENTS</td>
+				<td align=\"center\">$UNAME</td>
+				<td align=\"center\"; style=\"color: #$colorcode1;\">$WLS</td>
+				<td align=\"center\"; style=\"color: #$colorcode2;\">$BOTS</td>
+				<td align=\"center\"; style=\"color: #$colorcode3;\">$MONITOR</td>
+				<td align=\"center\"; style=\"color: #$colorcode4;\">$AUTOBOT</td>
+				<td align=\"center\"; style=\"color: #$colorcode5;\">$STARTACTIVITY</td>
+				<td align=\"center\"; style=\"color: #$colorcode6;\">$STARTRTACTIVITY</td>
+				<td align=\"center\"; style=\"color: #$colorcode7;\">$AUTORUN</td>
+				<td align=\"center\"; style=\"color: #$colorcode8;\">$CRON</td>
+				<td align=\"center\">$ENTRYDATE</td>
+				<td align=\"center\"; style=\"color: #$colorcode9;\">$CALCULATOR</td>
+				<td align=\"center\"; style=\"color: #$colorcode10;\">$MONCAL</td>
+				<td align=\"center\"; style=\"color: #$colorcode11;\">$STARTCAL</td>
+				<td align=\"center\"; style=\"color: #$colorcode12;\">$C_CRON</td>
+				<td align=\"center\">$C_ENTRYDATE</td>
+                                </tr>" >> $LOGDIR/status_report.html
+                done
+        done
+
+        echo "</table>" >> $LOGDIR/status_report.html
+
+	echo "</br></br>" >> $LOGDIR/status_report.html
+
+echo "</body></html>" >> $LOGDIR/status_report.html
+/usr/sbin/sendmail -t < $LOGDIR/status_report.html
+
+exit_success
