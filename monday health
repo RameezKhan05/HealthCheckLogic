@@ -1,0 +1,147 @@
+#!/bin/ksh
+. $HOME/.profile
+
+export ora_user_SCOI="ABC"
+export ora_pwd_SCOI="ABC"
+export ora_sid_SCOI="ABC"
+
+export SCRDIR=$HOME/stream/script
+export LOGDIR=$HOME/stream/logs
+#export MAIL_LIST=rameez.khan@gmail.com
+
+PERMISSION="rwxr-xr-x"
+APP_CRONENTRY="#"
+SERVER_NAME=`whoami`
+
+echo '                  ' > $LOGDIR/monday_monitor.log
+
+a=0
+for i in `cat $SCRDIR/botlist`;
+do
+r=`ps -ef|grep startBOTClient|grep $i|grep -v grep|wc -l`
+a=`expr $r + $a`
+done
+BOT_PROCESS_COUNT=$a
+BOT_LIST_COUNT=`cat $SCRDIR/botlist|wc -l`
+if [[ $BOT_PROCESS_COUNT = $BOT_LIST_COUNT ]]
+then
+BOTSTATUS="GOOD"
+else
+BOTSTATUS="BAD"
+fi
+echo $BOTSTATUS >> $LOGDIR/monday_monitor.log
+
+crontab -l|grep monitor_wls.sh > /dev/null 2>&1
+if [[ $? -eq 0 ]]
+then
+MWLS_APP_CRON=`crontab -l|grep monitor_wls.sh|cut -c 1-1`
+MWLS_EXEC=`ls -ltr $SCRDIR/monitor_wls.sh | cut -c 2-10`
+if [[ $MWLS_APP_CRON != $APP_CRONENTRY ]] && [[ $MWLS_EXEC = $PERMISSION ]]
+then
+MWLS="GOOD"
+else
+MWLS="BAD"
+fi
+echo $MWLS >> $LOGDIR/monday_monitor.log
+elif [[ $? -eq 1 ]]
+then
+MWLS="NA"
+echo $MWLS >> $LOGDIR/monday_monitor.log
+fi
+
+crontab -l|grep autoBOT.sh > /dev/null 2>&1
+if [[ $? -eq 0 ]]
+then
+ATBT_APP_CRON=`crontab -l|grep autoBOT.sh|cut -c 1-1`
+ATBT_EXEC=`ls -ltr $SCRDIR/autoBOT.sh | cut -c 2-10`
+if [[ $ATBT_APP_CRON != $APP_CRONENTRY ]] && [[ $ATBT_EXEC = $PERMISSION ]]
+then
+ATBT="GOOD"
+else
+ATBT="BAD"
+fi
+echo $ATBT >> $LOGDIR/monday_monitor.log
+elif [[ $? -eq 1 ]]
+then
+ATBT="NA"
+echo $ATBT >> $LOGDIR/monday_monitor.log
+fi
+
+crontab -l|grep startActivity.ksh > /dev/null 2>&1
+if [[ $? -eq 0 ]]
+then
+STACT_APP_CRON=`crontab -l|grep startActivity.ksh|cut -c 1-1`
+STACT_EXEC=`ls -ltr $SCRDIR/startActivity.ksh | cut -c 2-10`
+if [[ $STACT_APP_CRON != $APP_CRONENTRY ]] && [[ $STACT_EXEC = $PERMISSION ]]
+then
+STACT="GOOD"
+else
+STACT="BAD"
+fi
+echo $STACT >> $LOGDIR/monday_monitor.log
+elif [[ $? -eq 1 ]]
+then
+STACT="NA"
+echo $STACT >> $LOGDIR/monday_monitor.log
+fi
+
+crontab -l|grep startRTActivity.ksh > /dev/null 2>&1
+if [[ $? -eq 0 ]]
+then
+STRTACT_APP_CRON=`crontab -l|grep startRTActivity.ksh|cut -c 1-1`
+STRTACT_EXEC=`ls -ltr $SCRDIR/startRTActivity.ksh | cut -c 2-10`
+if [[ $STRTACT_APP_CRON != $APP_CRONENTRY ]] && [[ $STRTACT_EXEC = $PERMISSION ]]
+then
+STRTACT="GOOD"
+else
+STRTACT="BAD"
+fi
+echo $STRTACT >> $LOGDIR/monday_monitor.log
+elif [[ $? -eq 1 ]]
+then
+STRTACT="NA"
+echo $STRTACT >> $LOGDIR/monday_monitor.log
+fi
+
+crontab -l|grep autoRunScripts.sh > /dev/null 2>&1
+if [[ $? -eq 0 ]]
+then
+ATRNSCRPT_APP_CRON=`crontab -l|grep autoRunScripts.sh|cut -c 1-1`
+ATRNSCRPT_EXEC=`ls -ltr $SCRDIR/autoRunScripts.sh | cut -c 2-10`
+if [[ $ATRNSCRPT_APP_CRON != $APP_CRONENTRY ]] && [[ $ATRNSCRPT_EXEC = $PERMISSION ]]
+then
+ATRNSCRPT="GOOD"
+else
+ATRNSCRPT="BAD"
+fi
+echo $ATRNSCRPT >> $LOGDIR/monday_monitor.log
+elif [[ $? -eq 1 ]]
+then
+ATRNSCRPT="NA"
+echo $ATRNSCRPT >> $LOGDIR/monday_monitor.log
+fi
+
+cat $HOME/cron/cronbackup.log|grep 'No issue with cronjobs' > /dev/null 2>&1
+if [[ $? -eq 0 ]]
+then
+CRNTB="GOOD"
+else
+CRNTB="BAD"
+fi
+echo $CRNTB >> $LOGDIR/monday_monitor.log
+
+if [  -z `java weblogic.WLST $HOME/stream/script/ping.py | grep "Successfully connected to Admin Server"` ]
+     then
+        WLSB="BAD"
+        else
+        WLSB="GOOD"
+fi
+echo $WLSB >> $LOGDIR/monday_monitor.log
+
+sqlplus -s $ora_user_SCOI/$ora_pwd_SCOI@$ora_sid_SCOI << END
+UPDATE MONDAY_AUDIT_NEW set BOTS = '$BOTSTATUS',WLS_BOUNCE = '$WLSB',MONITOR_WLS = '$MWLS',AUTOBOT = '$ATBT',STARTACTIVITY = '$STACT',STARTRTACTIVITY = '$STRTACT',AUTORUNSCRIPT = '$ATRNSCRPT',APP_CRON = '$CRNTB', APP_ENTRYDATE = sysdate where UNAME = '$SERVER_NAME';
+commit;
+exit;
+END
+
+#cat $LOGDIR/monday_monitor.log | mailx -s "Monday Checks for $SERVER_NAME app" $MAIL_LIST
